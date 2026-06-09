@@ -1,0 +1,45 @@
+# .NET
+bin/
+obj/
+[Bb]uild/
+[Tt]est[Rr]esult*/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.aps
+*.ncb
+*.opensdf
+*.sdf
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# GitHub Actions / local CI helpers
+.act/
+.env
+.env.*
+
+# OS artifacts
+.DS_Store
+Thumbs.db
