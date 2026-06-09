@@ -1,56 +1,86 @@
-# Inventory API
+# Inventory API Final Project
 
-Cloud-native inventory service built with ASP.NET Core and designed for Azure deployment.
+Cloud-native Inventory API built with ASP.NET Core, Docker, Terraform, and GitHub Actions with OIDC-based Azure authentication.
 
-## Repository Structure
+## Project Overview
 
-```text
-src/
-  InventoryApi/
+This project delivers an end-to-end Azure deployment pipeline for a containerized Inventory API.
 
-infra/
-  terraform/
-    main.tf
-    providers.tf
-    variables.tf
-    outputs.tf
-    versions.tf
+- API: ASP.NET Core Web API
+- Infrastructure: Terraform
+- CI/CD: GitHub Actions
+- Auth: OIDC via azure/login@v2
+- Resource group target: rg-inventory-final (existing)
 
-.github/
-  workflows/
+## Azure Architecture
 
-docs/
-```
+Terraform provisions the following services in rg-inventory-final:
 
-## Planned Architecture
+- Azure Container Registry (Basic, admin disabled)
+- Log Analytics Workspace
+- Application Insights (workspace-based)
+- Container Apps Environment
+- Azure Container App (system-assigned managed identity)
+- Azure Cosmos DB (Serverless, SQL API, database + container)
+- Azure App Configuration
 
-- **API**: ASP.NET Core Web API (`src/InventoryApi`)
-- **Container Runtime**: Azure Container Apps
-- **Container Registry**: Azure Container Registry (ACR)
-- **Data Store**: Azure Cosmos DB (Serverless)
-- **Configuration**: Azure App Configuration
-- **Observability**: Azure Application Insights + Log Analytics
-- **Infrastructure as Code**: Terraform (`infra/terraform`)
-- **CI/CD Security**: GitHub Actions with Azure OIDC authentication (no client secrets)
+## Security Model
 
-## Security Direction
+- GitHub Actions uses OIDC only with repository variables:
+  - AZURE_CLIENT_ID
+  - AZURE_TENANT_ID
+  - AZURE_SUBSCRIPTION_ID
+- No client secrets, passwords, or static credentials in workflows
+- ACR admin user is disabled
+- Container App uses system-assigned managed identity
+- Application service registration includes DefaultAzureCredential for future Azure SDK integration
 
-- GitHub Actions authenticates to Azure using OIDC (`azure/login@v2`)
-- No client secrets in workflows
-- No connection strings committed to source control
-- Application code is prepared for future Managed Identity and `DefaultAzureCredential` adoption
-- RBAC authentication will be used where available
+## API Status
 
-## Local Development
+Implemented endpoints:
+
+- GET /api/items
+- GET /api/items/{id}
+- POST /api/items
+- PUT /api/items/{id}
+- DELETE /api/items/{id}
+- GET /health
+
+Current data layer uses an in-memory repository with a clean interface to enable later Cosmos DB implementation.
+
+Swagger UI is enabled at /swagger.
+
+## Workflows
+
+- .github/workflows/infra.yaml
+  - Runs Terraform fmt, init, validate, plan, apply
+  - Triggered by workflow_dispatch and pushes to main for infra/terraform changes
+  - Uses workflow concurrency guard to prevent overlapping apply runs
+- .github/workflows/app.yaml
+  - Builds the API
+  - Builds and pushes image to ACR using Azure RBAC (no admin credentials)
+  - Updates Container App image
+  - Resolves resources by deterministic stack tag (`inventory-api-final`) to avoid selecting the wrong resources in shared class resource groups
+  - Supports manual workflow_dispatch overrides: `acr_name` and `container_app_name`
+
+## Local Commands
+
+Run API:
 
 ```bash
 cd src/InventoryApi
 dotnet restore
+dotnet build
 dotnet run
 ```
 
-Health endpoint:
+Run Terraform:
 
-```text
-GET /health
+```bash
+cd infra/terraform
+terraform fmt -check -recursive
+terraform init
+terraform validate
+terraform plan
+terraform apply -auto-approve
 ```

@@ -1,0 +1,117 @@
+name: app
+
+on:
+  workflow_dispatch:
+    inputs:
+      acr_name:
+        description: Optional ACR name override for manual deploys
+        required: false
+        type: string
+      container_app_name:
+        description: Optional Container App name override for manual deploys
+        required: false
+        type: string
+  push:
+    branches:
+      - main
+    paths:
+      - src/InventoryApi/**
+      - .github/workflows/app.yaml
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RESOURCE_GROUP: rg-inventory-final
+  STACK_TAG: inventory-api-final
+  IMAGE_REPOSITORY: inventory-api
+
+concurrency:
+  group: app-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-app:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build API
+        working-directory: src/InventoryApi
+        run: |
+          dotnet restore
+          dotnet build --configuration Release --no-restore
+
+      - name: Resolve Azure resource names
+        id: resolve
+        shell: bash
+        run: |
+          ACR_NAME_INPUT="${{ github.event.inputs.acr_name }}"
+          APP_NAME_INPUT="${{ github.event.inputs.container_app_name }}"
+
+          if [ -n "$ACR_NAME_INPUT" ]; then
+            ACR_NAME="$ACR_NAME_INPUT"
+          else
+            ACR_COUNT=$(az acr list -g "$RESOURCE_GROUP" --query "[?tags.stack=='$STACK_TAG'] | length(@)" -o tsv)
+            if [ "$ACR_COUNT" != "1" ]; then
+              echo "Expected exactly 1 ACR with tags.stack=$STACK_TAG in $RESOURCE_GROUP, found $ACR_COUNT"
+              az acr list -g "$RESOURCE_GROUP" --query "[?tags.stack=='$STACK_TAG'].name" -o tsv
+              exit 1
+            fi
+            ACR_NAME=$(az acr list -g "$RESOURCE_GROUP" --query "[?tags.stack=='$STACK_TAG'] | [0].name" -o tsv)
+          fi
+
+          if [ -n "$APP_NAME_INPUT" ]; then
+            APP_NAME="$APP_NAME_INPUT"
+          else
+            APP_COUNT=$(az containerapp list -g "$RESOURCE_GROUP" --query "[?tags.stack=='$STACK_TAG'] | length(@)" -o tsv)
+            if [ "$APP_COUNT" != "1" ]; then
+              echo "Expected exactly 1 Container App with tags.stack=$STACK_TAG in $RESOURCE_GROUP, found $APP_COUNT"
+              az containerapp list -g "$RESOURCE_GROUP" --query "[?tags.stack=='$STACK_TAG'].name" -o tsv
+              exit 1
+            fi
+            APP_NAME=$(az containerapp list -g "$RESOURCE_GROUP" --query "[?tags.stack=='$STACK_TAG'] | [0].name" -o tsv)
+          fi
+
+          if [ -z "$ACR_NAME" ] || [ -z "$APP_NAME" ]; then
+            echo "Could not resolve ACR or Container App in $RESOURCE_GROUP"
+            exit 1
+          fi
+
+          ACR_LOGIN_SERVER=$(az acr show -n "$ACR_NAME" --query "loginServer" -o tsv)
+          IMAGE_TAG=${GITHUB_SHA::7}
+          IMAGE="$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY:$IMAGE_TAG"
+
+          echo "acr_name=$ACR_NAME" >> "$GITHUB_OUTPUT"
+          echo "app_name=$APP_NAME" >> "$GITHUB_OUTPUT"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image to ACR
+        shell: bash
+        run: |
+          az acr build \
+            --registry "${{ steps.resolve.outputs.acr_name }}" \
+            --image "$IMAGE_REPOSITORY:${GITHUB_SHA::7}" \
+            src/InventoryApi
+
+      - name: Update Container App image
+        run: |
+          az containerapp update \
+            --name "${{ steps.resolve.outputs.app_name }}" \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "${{ steps.resolve.outputs.image }}"
