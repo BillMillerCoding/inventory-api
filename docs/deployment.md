@@ -30,11 +30,16 @@ Terraform deploys:
 
 - Azure Container Registry
 - Log Analytics Workspace
-- Application Insights
 - Container Apps Environment
 - Container App (system-assigned managed identity)
 - Cosmos DB (Serverless SQL API, database, container)
 - App Configuration
+
+Temporary CI stabilization choices:
+
+- Application Insights is temporarily disabled in Terraform due an AzureRM provider billing metadata edge case causing intermittent CI failures.
+- It will be re-enabled after core deployment stabilizes.
+- App Configuration uses a high-entropy random suffix (`appcs-inventory-${random_string.suffix}`) to avoid soft-delete name conflicts without requiring manual Azure cleanup.
 
 ## 2) Application Workflow (app.yaml)
 

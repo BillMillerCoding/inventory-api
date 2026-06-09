@@ -18,11 +18,12 @@ Terraform provisions the following services in rg-inventory-final:
 
 - Azure Container Registry (Basic, admin disabled)
 - Log Analytics Workspace
-- Application Insights (workspace-based)
 - Container Apps Environment
 - Azure Container App (system-assigned managed identity)
 - Azure Cosmos DB (Serverless, SQL API, database + container)
 - Azure App Configuration
+
+For CI stability in this phase, Application Insights is temporarily disabled in Terraform and will be re-enabled after core infrastructure deployment is consistently stable.
 
 ## Security Model
 

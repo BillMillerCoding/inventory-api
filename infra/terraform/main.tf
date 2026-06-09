@@ -3,7 +3,7 @@ data "azurerm_resource_group" "existing" {
 }
 
 resource "random_string" "suffix" {
-  length  = 6
+  length  = 12
   special = false
   upper   = false
   numeric = true
@@ -17,10 +17,9 @@ locals {
 
   acr_name                        = substr(replace("acr${local.name_prefix}", "-", ""), 0, 50)
   log_analytics_workspace_name    = substr("law-${var.project_name}-${var.environment}-${random_string.suffix.result}", 0, 63)
-  application_insights_name       = substr("appi-${var.project_name}-${var.environment}-${random_string.suffix.result}", 0, 255)
   container_apps_environment_name = substr("cae-${var.project_name}-${var.environment}-${random_string.suffix.result}", 0, 60)
   cosmos_account_name             = substr(replace("cosmos${local.name_prefix}", "-", ""), 0, 44)
-  app_configuration_name          = substr(replace("appcs${local.name_prefix}", "-", ""), 0, 50)
+  app_configuration_name          = substr("appcs-inventory-${random_string.suffix.result}", 0, 50)
   container_app_name              = substr("${var.app_name}-${var.environment}", 0, 32)
 
   common_tags = merge(var.tags, {
@@ -48,16 +47,6 @@ resource "azurerm_log_analytics_workspace" "this" {
   resource_group_name = local.resource_group_name
   sku                 = "PerGB2018"
   retention_in_days   = var.log_analytics_retention_days
-  tags                = local.common_tags
-}
-
-# Workspace-based Application Insights for request tracing and telemetry.
-resource "azurerm_application_insights" "this" {
-  name                = local.application_insights_name
-  location            = local.resource_group_location
-  resource_group_name = local.resource_group_name
-  application_type    = "web"
-  workspace_id        = azurerm_log_analytics_workspace.this.id
   tags                = local.common_tags
 }
 
@@ -159,11 +148,6 @@ resource "azurerm_container_app" "this" {
       env {
         name  = "ASPNETCORE_URLS"
         value = "http://+:${var.container_port}"
-      }
-
-      env {
-        name  = "APPINSIGHTS_CONNECTION_STRING"
-        value = azurerm_application_insights.this.connection_string
       }
 
       env {
