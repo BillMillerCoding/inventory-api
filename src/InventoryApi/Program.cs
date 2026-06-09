@@ -1,3 +1,4 @@
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using InventoryApi.DependencyInjection;
 using InventoryApi.Models;
 using InventoryApi.Repositories;
@@ -6,7 +7,7 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
-builder.Services.AddApplicationInsightsTelemetry();
+builder.Services.AddOpenTelemetry().UseAzureMonitor();
 builder.Services.AddInventoryApiServices();
 
 var app = builder.Build();
