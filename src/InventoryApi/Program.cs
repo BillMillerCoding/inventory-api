@@ -6,6 +6,7 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddInventoryApiServices();
 
 var app = builder.Build();
@@ -28,9 +29,11 @@ app.MapGet("/api/items/{id}", async (string id, IInventoryRepository repository,
     return item is null ? Results.NotFound() : Results.Ok(item);
 });
 
-app.MapPost("/api/items", async (InventoryItem item, IInventoryRepository repository, CancellationToken cancellationToken) =>
+app.MapPost("/api/items", async (InventoryItem item, IInventoryRepository repository, ILogger<Program> logger, CancellationToken cancellationToken) =>
 {
+    logger.LogInformation("Creating inventory item: {Name}", item.Name);
     var created = await repository.CreateAsync(item, cancellationToken);
+    logger.LogInformation("Created inventory item: {Id} {Name}", created.Id, created.Name);
     return Results.Created($"/api/items/{created.Id}", created);
 });
 

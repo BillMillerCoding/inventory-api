@@ -109,10 +109,20 @@ jobs:
             --image "$IMAGE_REPOSITORY:${GITHUB_SHA::7}" \
             src/InventoryApi
 
+      - name: Fetch App Insights connection string
+        shell: bash
+        run: |
+          AI_CONN=$(az monitor app-insights component list \
+            -g "$RESOURCE_GROUP" \
+            --query "[?tags.stack=='$STACK_TAG'] | [0].connectionString" -o tsv)
+          echo "AI_CONN=$AI_CONN" >> "$GITHUB_ENV"
+
       - name: Update Container App image
+        shell: bash
         run: |
           az containerapp update \
             --name "${{ steps.resolve.outputs.app_name }}" \
             --resource-group "$RESOURCE_GROUP" \
             --image "${{ steps.resolve.outputs.image }}" \
-            --revision-suffix "${GITHUB_SHA::7}"
+            --revision-suffix "${GITHUB_SHA::7}" \
+            --set-env-vars "APPLICATIONINSIGHTS_CONNECTION_STRING=$AI_CONN"

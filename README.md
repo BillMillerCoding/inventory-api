@@ -49,7 +49,7 @@ Implemented endpoints:
 
 Current data layer uses an in-memory repository with a clean interface to enable later Cosmos DB implementation.
 
-Swagger UI is enabled at /swagger.
+Swagger UI is enabled at /scalar/v1.
 
 ## Workflows
 
