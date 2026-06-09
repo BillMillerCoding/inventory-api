@@ -105,6 +105,12 @@ variable "app_name" {
   default     = "inventory-api"
 }
 
+variable "name_suffix" {
+  description = "Fixed short suffix appended to globally-scoped resource names (ACR, Cosmos, App Config). Committed once so every CI run produces identical names and Terraform apply is idempotent."
+  type        = string
+  default     = "final"
+}
+
 variable "stack_tag" {
   description = "Unique stack tag used to identify this deployment in shared resource groups"
   type        = string

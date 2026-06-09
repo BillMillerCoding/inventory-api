@@ -1,5 +1,13 @@
 provider "azurerm" {
-  features {}
+  features {
+    # Disable soft-delete recovery checks for App Configuration.
+    # The OIDC service principal does not have permissions to query soft-deleted
+    # resources, so we instruct the provider to skip that lookup entirely and
+    # always create fresh resources.
+    app_configuration {
+      recover_soft_deleted = false
+    }
+  }
 }
 
 # NOTE:

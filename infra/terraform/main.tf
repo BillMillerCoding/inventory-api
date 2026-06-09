@@ -2,24 +2,19 @@ data "azurerm_resource_group" "existing" {
   name = var.resource_group_name
 }
 
-resource "random_string" "suffix" {
-  length  = 12
-  special = false
-  upper   = false
-  numeric = true
-}
-
 locals {
   resource_group_name     = data.azurerm_resource_group.existing.name
   resource_group_location = try(data.azurerm_resource_group.existing.location, var.location)
 
-  name_prefix = "${var.project_name}${var.environment}${random_string.suffix.result}"
+  # name_suffix is a committed fixed value so every Terraform run produces the same
+  # resource names and applies are fully idempotent across ephemeral CI runners.
+  name_prefix = "${var.project_name}${var.environment}${var.name_suffix}"
 
   acr_name                        = substr(replace("acr${local.name_prefix}", "-", ""), 0, 50)
-  log_analytics_workspace_name    = substr("law-${var.project_name}-${var.environment}-${random_string.suffix.result}", 0, 63)
-  container_apps_environment_name = substr("cae-${var.project_name}-${var.environment}-${random_string.suffix.result}", 0, 60)
+  log_analytics_workspace_name    = substr("law-${var.project_name}-${var.environment}-${var.name_suffix}", 0, 63)
+  container_apps_environment_name = substr("cae-${var.project_name}-${var.environment}-${var.name_suffix}", 0, 60)
   cosmos_account_name             = substr(replace("cosmos${local.name_prefix}", "-", ""), 0, 44)
-  app_configuration_name          = substr("appcs-inventory-${random_string.suffix.result}", 0, 50)
+  app_configuration_name          = substr("appcs-inventory-${var.name_suffix}", 0, 50)
   container_app_name              = substr("${var.app_name}-${var.environment}", 0, 32)
 
   common_tags = merge(var.tags, {
