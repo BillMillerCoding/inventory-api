@@ -1,3 +1,4 @@
+using Azure.Identity;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
 using InventoryApi.DependencyInjection;
 using InventoryApi.Models;
@@ -6,9 +7,18 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Wire in Azure App Configuration using Managed Identity (passwordless)
+var appConfigEndpoint = builder.Configuration["APP_CONFIG_ENDPOINT"];
+if (!string.IsNullOrEmpty(appConfigEndpoint))
+{
+    builder.Configuration.AddAzureAppConfiguration(options =>
+        options.Connect(new Uri(appConfigEndpoint), new DefaultAzureCredential())
+               .Select("InventoryApi:*"));
+}
+
 builder.Services.AddOpenApi();
 builder.Services.AddOpenTelemetry().UseAzureMonitor();
-builder.Services.AddInventoryApiServices();
+builder.Services.AddInventoryApiServices(builder.Configuration);
 
 var app = builder.Build();
 

@@ -199,3 +199,25 @@ resource "azurerm_role_assignment" "container_app_acr_pull" {
     ignore_changes = [skip_service_principal_aad_check]
   }
 }
+
+# Allow Container App managed identity to read/write Cosmos DB data (passwordless).
+resource "azurerm_cosmosdb_sql_role_assignment" "container_app_cosmos_contributor" {
+  resource_group_name = local.resource_group_name
+  account_name        = azurerm_cosmosdb_account.this.name
+  role_definition_id  = "${azurerm_cosmosdb_account.this.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
+  principal_id        = azurerm_container_app.this.identity[0].principal_id
+  scope               = azurerm_cosmosdb_account.this.id
+}
+
+# Allow Container App managed identity to read App Configuration values (passwordless).
+resource "azurerm_role_assignment" "container_app_appconfig_reader" {
+  scope                = azurerm_app_configuration.this.id
+  role_definition_name = "App Configuration Data Reader"
+  principal_id         = azurerm_container_app.this.identity[0].principal_id
+
+  skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes = [skip_service_principal_aad_check]
+  }
+}
