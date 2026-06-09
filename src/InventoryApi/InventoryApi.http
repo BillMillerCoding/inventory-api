@@ -1,6 +1,6 @@
 @InventoryApi_HostAddress = http://localhost:5118
 
-GET {{InventoryApi_HostAddress}}/weatherforecast/
+GET {{InventoryApi_HostAddress}}/health
 Accept: application/json
 
 ###
