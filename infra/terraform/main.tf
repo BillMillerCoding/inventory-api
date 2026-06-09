@@ -183,4 +183,8 @@ resource "azurerm_role_assignment" "container_app_acr_pull" {
   principal_id         = azurerm_container_app.this.identity[0].principal_id
 
   skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes = [skip_service_principal_aad_check]
+  }
 }
