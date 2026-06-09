@@ -130,13 +130,21 @@ resource "azurerm_container_app" "this" {
     }
   }
 
+  # The app workflow owns the container image — Terraform only bootstraps.
+  # Ignore template changes so 'terraform apply' never reverts a live deployment.
+  lifecycle {
+    ignore_changes = [template]
+  }
+
   template {
     min_replicas = 1
     max_replicas = 1
 
     container {
-      name   = "inventory-api"
-      image  = "${azurerm_container_registry.this.login_server}/${var.container_image_repository}:${var.container_image_tag}"
+      name = "inventory-api"
+      # Public placeholder image used on first Terraform apply before the app workflow
+      # pushes the real image to ACR. The app workflow overwrites this via az containerapp update.
+      image  = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
       cpu    = var.container_cpu
       memory = var.container_memory
 

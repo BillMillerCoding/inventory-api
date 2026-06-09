@@ -114,4 +114,5 @@ jobs:
           az containerapp update \
             --name "${{ steps.resolve.outputs.app_name }}" \
             --resource-group "$RESOURCE_GROUP" \
-            --image "${{ steps.resolve.outputs.image }}"
+            --image "${{ steps.resolve.outputs.image }}" \
+            --revision-suffix "${GITHUB_SHA::7}"

@@ -34,8 +34,8 @@ output "container_app_name" {
 }
 
 output "container_app_url" {
-  description = "Container App public URL"
-  value       = "https://${azurerm_container_app.this.latest_revision_fqdn}"
+  description = "Container App public URL (stable ingress, not revision-specific)"
+  value       = "https://${azurerm_container_app.this.ingress[0].fqdn}"
 }
 
 output "cosmos_account_name" {
