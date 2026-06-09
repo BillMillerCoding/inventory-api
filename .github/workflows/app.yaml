@@ -112,9 +112,12 @@ jobs:
       - name: Fetch App Insights connection string
         shell: bash
         run: |
-          AI_CONN=$(az monitor app-insights component list \
+          AI_CONN=$(az resource list \
             -g "$RESOURCE_GROUP" \
-            --query "[?tags.stack=='$STACK_TAG'] | [0].connectionString" -o tsv)
+            --resource-type "Microsoft.Insights/components" \
+            --query "[?tags.stack=='$STACK_TAG'] | [0].id" -o tsv \
+            | xargs -I{} az resource show --ids {} \
+              --query "properties.ConnectionString" -o tsv)
           echo "AI_CONN=$AI_CONN" >> "$GITHUB_ENV"
 
       - name: Update Container App image
